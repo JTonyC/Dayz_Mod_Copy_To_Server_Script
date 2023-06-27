@@ -5,107 +5,113 @@ param (
     [Parameter(Mandatory = $true)]
     [String]$UNCPathToServerRoot       #Enter the UNC Path to the Dayz Server Install
 )
+try {
+    #Set-up logging Variables
+    $logFileName = $MyInvocation.MyCommand.Name
+    $loggingPath = "$PSScriptRoot\$logFileName.txt"
+    $remotePath = "$UNCPathToServerRoot"
+    $remotePathKeys = "$remotePath\keys"
+    $modFileList = "$PSScriptRoot\$ModHTMLFile"
+    $installPath = ''
+    $smbmap = ''
+    $LANServerIP = $UNCPathToServerRoot.split('\')[2]
 
-#Set-up logging Variables
-$logFileName = $MyInvocation.MyCommand.Name
-$loggingPath = "$PSScriptRoot\$logFileName.txt"
-$remotePath = "$UNCPathToServerRoot"
-$remotePathKeys = "$remotePath\keys"
-$modFileList = "$PSScriptRoot\$ModHTMLFile"
-$smbmapped = $false
-$installPath = ''
-$LANServerIP = $UNCPathToServerRoot.split('\')[2]
+    #Start Logging
+    Start-Transcript -Path $loggingPath
 
-#Start Logging
-Start-Transcript -Path $loggingPath
-
-Write-Host ""
-Write-Host "Welcome to the Dayz Dedicated Server Mod Copy Script." -f Green
-Write-Host ""
-
-Try{
-    $testUNCPath = Test-Path -Path $UNCPathToServerRoot -ErrorAction Stop
-}catch{
-    $cred = Get-Credential
-    New-SmbMapping -RemotePath "\\$LANServerIP\IPC$" -UserName $cred.UserName -Password $cred.GetNetworkCredential().password
-    $smbmapped = $true
-    if($testUNCPath -eq $false){
-        Write-Host ("Network Path specified {0} is not reachable. Please check and try again." -f $UNCPathToServerRoot) -ForegroundColor Red
-        Stop-Transcript
-        exit
-    }
-}
+    Write-Host ""
+    Write-Host "Welcome to the Dayz Dedicated Server Mod Copy Script." -f Green
+    Write-Host ""
 
 
-if((Test-Path -Path $modFileList) -eq $false){
-    Write-Host ("{0} is not valid. Please check the file exists and that there are no typos and try again." -f $ModHTMLFile) -ForegroundColor Red
-    Stop-Transcript
-    exit
-}
-
-Write-host "Establishing if Steam is installed." -ForegroundColor Green
-#Establish if Steam is installed.
-if(Test-Path 'HKLM:\SOFTWARE\Valve\Steam'){
-    $installPath = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Valve\Steam').InstallPath
-}
-
-if(Test-Path 'HKLM:\SOFTWARE\WOW6432Node\Valve\Steam'){
-    $installPath = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\WOW6432Node\Valve\Steam').InstallPath
-}
-
-if($installPath){
-    Write-Host ("Found Steam install at $installPath. Locating Dayz Install..") -ForegroundColor Green
-    if(Test-Path -Path $installPath\steamapps\appmanifest_221100.acf){
-        Write-Host ("Found Dayz install (appmanifest_221100.acf present!). Checking for Steam Workshop Directory.." -f "$installPath\steamapps\appmanifest_221100.acf") -ForegroundColor Green
-        Write-Host ""
-    }else{
-        Write-Host "Dayz install not Found!" -ForegroundColor Red
-        Stop-Transcript
-        exit
-    }
-
-    $DayzInstall = $installPath + "\steamapps\common\DayZ\!Workshop"
-
-    $modFileExportPath = "$PSScriptRoot\dayz_expansion_mod_list.txt"
-    $HTML = Invoke-WebRequest $modFileList -UseBasicParsing
-    $site = New-Object -ComObject "HTMLFile"
-    $site.IHTMLDocument2_write($HTML.RawContent)
-    $dataArray = @($site.all.tags("td") | ForEach-Object innertext)
-    $newArray = @()
-    $count = 0
-
-    while($count -lt $dataArray.Count){
-        $newArray += $dataArray[$count];$count += 3
-    }
-
-    $newArray | Out-File $modFileExportPath
-
-    $ModFile = Get-Content "$PSScriptRoot\dayz_expansion_mod_list.txt"
-    $mods = @()
-    ForEach($f in $ModFile){
-        $mods += "@" + $f.split(",")[0]
-    }
-    #Copy Mods
-    ForEach($m in $mods){
-        if(Test-Path -Path "$DayzInstall\$m"){
-            Write-Host ("{0} is a valid path!" -f "$DayzInstall\$m")
-            robocopy "$DayzInstall\$m\\" "$remotePath\$m\\" /r:60 /w:5 /MIR /MT:64
-            if(Test-Path -Path "$DayzInstall\$m\keys\"){
-                Copy-Item -Path "$DayzInstall\$m\keys\*.bikey" -Destination $remotePathKeys -Force -Verbose
-            }elseif(Test-Path -Path "$DayzInstall\$m\key\"){
-                Copy-Item -Path "$DayzInstall\$m\key\*.bikey" -Destination $remotePathKeys -Force -Verbose
-            }elseif(Test-Path -Path "$DayzInstall\$m\*.bikey"){
-                Copy-Item -Path "$DayzInstall\$m\*.bikey" -Destination $remotePathKeys -Force -Verbose
-            }
+    if((Test-Path -Path $UNCPathToServerRoot) -eq $false){
+        Write-Host ("The UNC path entered could not be resolved. This might be due to permissions or an incorrect path entered." -f $UNCPathToServerRoot) -ForegroundColor Yellow
+        Write-Host ("Please enter your Network Credentials. This will map the IPC$ share and test the path entered again.") -ForegroundColor Yellow
+        $cred = Get-Credential
+        $smbmap = New-SmbMapping -RemotePath "\\$LANServerIP\IPC$" -UserName $cred.UserName -Password $cred.GetNetworkCredential().password
+        Start-Sleep 2
+        if(($smbmap.Status) -eq 'OK' -and (Test-Path -Path $UNCPathToServerRoot)){
+            Write-Host ("UNC Path appears to be valid. Successful Test!") -ForegroundColor Green
         }else{
-            Write-Host ("{0} is not a valid path!" -f "$DayzInstall\$m") -ForegroundColor Red
+            Write-Host ("Network Path specified {0} is not reachable. Please check and try again." -f $UNCPathToServerRoot) -ForegroundColor Red
+            exit
         }
     }
-}else{
-    Write-Host ("Steam is not installed. Exiting..")
-    Exit;
+
+    if(Test-Path -Path $modFileList){
+        Write-Host ("The ModFile List provided {0} appears to be valid!" -f $modFileList) -ForegroundColor Green
+    }else{
+        Write-Host ("{0} is not valid. Please check the file exists and that there are no typo's in the script parameter and try again." -f $ModHTMLFile) -ForegroundColor Red
+        exit
+    }
+
+    Write-host "Establishing if Steam is installed." -ForegroundColor Green
+    #Establish if Steam is installed.
+    if(Test-Path 'HKLM:\SOFTWARE\Valve\Steam'){
+        $installPath = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Valve\Steam').InstallPath
+    }
+
+    if(Test-Path 'HKLM:\SOFTWARE\WOW6432Node\Valve\Steam'){
+        $installPath = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\WOW6432Node\Valve\Steam').InstallPath
+    }
+
+    if($installPath){
+        Write-Host ("Found Steam install at $installPath. Locating Dayz Install..") -ForegroundColor Green
+        if(Test-Path -Path $installPath\steamapps\appmanifest_221100.acf){
+            Write-Host ("Found Dayz install (appmanifest_221100.acf present!). Checking for Steam Workshop Directory.." -f "$installPath\steamapps\appmanifest_221100.acf") -ForegroundColor Green
+            Write-Host ""
+        }else{
+            Write-Host "Dayz install not Found!" -ForegroundColor Red
+            exit
+        }
+
+        $DayzInstall = $installPath + "\steamapps\common\DayZ\!Workshop"
+
+        $modFileExportPath = "$PSScriptRoot\dayz_expansion_mod_list.txt"
+        $HTML = Invoke-WebRequest $modFileList -UseBasicParsing
+        $site = New-Object -ComObject "HTMLFile"
+        $site.IHTMLDocument2_write($HTML.RawContent)
+        $dataArray = @($site.all.tags("td") | ForEach-Object innertext)
+        $newArray = @()
+        $count = 0
+
+        while($count -lt $dataArray.Count){
+            $newArray += $dataArray[$count];$count += 3
+        }
+
+        $newArray | Out-File $modFileExportPath
+
+        $ModFile = Get-Content "$PSScriptRoot\dayz_expansion_mod_list.txt"
+        $mods = @()
+        ForEach($f in $ModFile){
+            $mods += "@" + $f.split(",")[0]
+        }
+        #Copy Mods
+        ForEach($m in $mods){
+            if(Test-Path -Path "$DayzInstall\$m"){
+                Write-Host ("{0} is a valid path!" -f "$DayzInstall\$m")
+                robocopy "$DayzInstall\$m\\" "$remotePath\$m\\" /r:60 /w:5 /MIR /MT:64
+                if(Test-Path -Path "$DayzInstall\$m\keys\"){
+                    Copy-Item -Path "$DayzInstall\$m\keys\*.bikey" -Destination $remotePathKeys -Force -Verbose
+                }elseif(Test-Path -Path "$DayzInstall\$m\key\"){
+                    Copy-Item -Path "$DayzInstall\$m\key\*.bikey" -Destination $remotePathKeys -Force -Verbose
+                }elseif(Test-Path -Path "$DayzInstall\$m\*.bikey"){
+                    Copy-Item -Path "$DayzInstall\$m\*.bikey" -Destination $remotePathKeys -Force -Verbose
+                }
+            }else{
+                Write-Host ("{0} is not a valid path!" -f "$DayzInstall\$m") -ForegroundColor Red
+            }
+        }
+    }else{
+        Write-Host ("Steam is not installed. Exiting..")
+        Exit;
+    }
+
 }
-if($smbmapped){
-    Remove-SmbMapping -RemotePath "\\$LANServerIP\IPC$" -Confirm:$false
+finally {
+    if($smbmap){
+        Write-Host "IPC$ share removed." -ForegroundColor Green
+        Remove-SmbMapping -RemotePath "\\$LANServerIP\IPC$" -Confirm:$false
+    }
+    Stop-Transcript
 }
-Stop-Transcript
