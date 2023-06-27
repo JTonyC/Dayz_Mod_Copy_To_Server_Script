@@ -24,6 +24,8 @@ Now, open powershell, change directory to the script folder and run the followin
 Example
 .\Dayz_Mod_Copy.ps1 -ModHTMLFile "Dayz_Mods.html" -UNCPathToServerRoot '\\Yourserveripaddress\sharename\steamCMD\Games\Dayz\DayzServer'
 
-This may prompt you for credentials if your current credentials do not have access to the share.
+If you don't have access to the UNC path, you will be prompted for credentials. Once entered, the IPC$ share will be silently mapped and a restest will take place.
+If this fails, then you'll need to look at what was entered for the UNC path to make sure its accurate or check your network credentials.
 
-Once entered, the script will proceed to upload the mods spoecified in the mods list.
+The script will then look to see if the mods list is present in the same directory. If it is then the script will proceed to upload mods to the root of the Dayz Dedicated Server install Folder.
+(This is not the host root, it is specifically the Dayz Server install root, as specified by the UNC path you provided.)
