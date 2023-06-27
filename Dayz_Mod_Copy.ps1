@@ -6,27 +6,15 @@ param (
     [String]$UNCPathToServerRoot       #Enter the UNC Path to the Dayz Server Install
 )
 
-if(!(Test-Path -Path $UNCPathToServerRoot)){
-    Write-Host ("Network Path specified {0} is not reachable. Please check and try again." -f $UNCPathToServerRoot) -ForegroundColor Red
-    exit
-}
-
-if(!(Test-Path -Path $PSScriptRoot\$ModHTMLFile)){
-    Write-Host ("{0} is not valid. Please check for typos and try again." -f $ModHTMLFile) -ForegroundColor Red
-    exit
-}
-
 #Set-up logging Variables
 $logFileName = $MyInvocation.MyCommand.Name
 $loggingPath = "$PSScriptRoot\$logFileName.txt"
 $remotePath = "$UNCPathToServerRoot"
 $remotePathKeys = "$remotePath\keys"
 $modFileList = "$PSScriptRoot\$ModHTMLFile"
-$modFileExportPath = "$PSScriptRoot\dayz_expansion_mod_list.txt"
-#$cred = Get-Credential
-#Variables
+$smbmapped = $false
 $installPath = ''
-#New-SmbMapping -RemotePath "\\$LANServerIP\IPC$" -UserName $cred.UserName -Password $cred.GetNetworkCredential().password
+$LANServerIP = $UNCPathToServerRoot.split('\')[2]
 
 #Start Logging
 Start-Transcript -Path $loggingPath
@@ -34,6 +22,27 @@ Start-Transcript -Path $loggingPath
 Write-Host ""
 Write-Host "Welcome to the Dayz Dedicated Server Mod Copy Script." -f Green
 Write-Host ""
+
+Try{
+    $testUNCPath = Test-Path -Path $UNCPathToServerRoot -ErrorAction Stop
+}catch{
+    $cred = Get-Credential
+    New-SmbMapping -RemotePath "\\$LANServerIP\IPC$" -UserName $cred.UserName -Password $cred.GetNetworkCredential().password
+    $smbmapped = $true
+    if($testUNCPath -eq $false){
+        Write-Host ("Network Path specified {0} is not reachable. Please check and try again." -f $UNCPathToServerRoot) -ForegroundColor Red
+        Stop-Transcript
+        exit
+    }
+}
+
+
+if((Test-Path -Path $modFileList) -eq $false){
+    Write-Host ("{0} is not valid. Please check the file exists and that there are no typos and try again." -f $ModHTMLFile) -ForegroundColor Red
+    Stop-Transcript
+    exit
+}
+
 Write-host "Establishing if Steam is installed." -ForegroundColor Green
 #Establish if Steam is installed.
 if(Test-Path 'HKLM:\SOFTWARE\Valve\Steam'){
@@ -57,6 +66,7 @@ if($installPath){
 
     $DayzInstall = $installPath + "\steamapps\common\DayZ\!Workshop"
 
+    $modFileExportPath = "$PSScriptRoot\dayz_expansion_mod_list.txt"
     $HTML = Invoke-WebRequest $modFileList -UseBasicParsing
     $site = New-Object -ComObject "HTMLFile"
     $site.IHTMLDocument2_write($HTML.RawContent)
@@ -95,5 +105,7 @@ if($installPath){
     Write-Host ("Steam is not installed. Exiting..")
     Exit;
 }
-#Remove-SmbMapping -RemotePath "\\$LANServerIP\IPC$" -Confirm:$false
+if($smbmapped){
+    Remove-SmbMapping -RemotePath "\\$LANServerIP\IPC$" -Confirm:$false
+}
 Stop-Transcript
