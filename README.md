@@ -29,3 +29,11 @@ If this fails, then you'll need to look at what was entered for the UNC path to 
 
 The script will then look to see if the mods list is present in the same directory. If it is then the script will proceed to upload mods to the root of the Dayz Dedicated Server install Folder.
 (This is not the host root, it is specifically the Dayz Server install root, as specified by the UNC path you provided.)
+
+In addition, this script isn't signed, so, you may need to update your shell by using the following command:
+
+Set-ExecutionPolicy -ExecutionPolicy Unrestricted
+
+You'll need an admin prompt to do that. Once you've run the script, its recommended to set it back to remote signed with this:
+
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned
