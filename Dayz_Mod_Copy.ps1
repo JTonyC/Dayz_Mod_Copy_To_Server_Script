@@ -20,7 +20,7 @@ try {
     Start-Transcript -Path $loggingPath
 
     Write-Host ""
-    Write-Host "Welcome to the Dayz Dedicated Server Mod Copy Script." -f Green
+    Write-Host "Welcome to the Dayz Dedicated Server Mod Copy Script." -ForegroundColor Green
     Write-Host ""
 
 
@@ -31,7 +31,7 @@ try {
         $smbmap = New-SmbMapping -RemotePath "\\$LANServerIP\IPC$" -UserName $cred.UserName -Password $cred.GetNetworkCredential().password
         Start-Sleep 2
         if(($smbmap.Status) -eq 'OK' -and (Test-Path -Path $UNCPathToServerRoot)){
-            Write-Host ("UNC Path appears to be valid. Successful Test!") -ForegroundColor Green
+            Write-Host ("UNC Path {0} appears to be valid. Successful Test!" -f $UNCPathToServerRoot) -ForegroundColor Green
         }else{
             Write-Host ("Network Path specified {0} is not reachable. Please check and try again." -f $UNCPathToServerRoot) -ForegroundColor Red
             exit
