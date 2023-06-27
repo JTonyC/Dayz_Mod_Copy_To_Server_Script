@@ -1,6 +1,6 @@
-# Dayz Dedicated Server Mod Copy Script.
+# <h1 align="center">Dayz Dedicated Server Mod Copy Script.</h1>
 
-![image](https://github.com/JTonyC/Dayz_Mod_Copy_To_Server_Script/assets/8288792/b89f738f-0b83-48e6-8a24-f26bedf80c9e)
+<p align="center"><img width="500" src="https://github.com/JTonyC/Dayz_Mod_Copy_To_Server_Script/assets/8288792/b89f738f-0b83-48e6-8a24-f26bedf80c9e"></p>
 
 This script can help to install and update mods on your windows LAN, dedicated server.
 
@@ -13,7 +13,7 @@ This script can help to install and update mods on your windows LAN, dedicated s
 Download the script and copy it to an empty directory.
 Open the Dayz Launcher and click 'Mods' -> 'More' -> 'Export list of mods to a file...'
 
-![image](https://github.com/JTonyC/Dayz_Mod_Copy_To_Server_Script/assets/8288792/e1b2cfff-f7b5-430e-bc14-5952a287821e)
+<p align="center"><img src="https://github.com/JTonyC/Dayz_Mod_Copy_To_Server_Script/assets/8288792/e1b2cfff-f7b5-430e-bc14-5952a287821e"></p>
 
 When asked What list to export, select 'Only loaded Mods' if you have a Preset saved and loaded, otherwise select 'All mods'.
 
