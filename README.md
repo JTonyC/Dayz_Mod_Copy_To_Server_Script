@@ -1,5 +1,7 @@
 # Dayz Dedicated Server Mod Copy Script.
 
+![image](https://github.com/JTonyC/Dayz_Mod_Copy_To_Server_Script/assets/8288792/b89f738f-0b83-48e6-8a24-f26bedf80c9e)
+
 This script can help to install and update mods on your windows LAN, dedicated server.
 
 # Requirements
