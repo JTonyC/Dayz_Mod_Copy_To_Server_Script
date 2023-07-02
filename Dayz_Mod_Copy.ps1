@@ -23,8 +23,7 @@ try {
     Write-Host "Welcome to the Dayz Dedicated Server Mod Copy Script." -ForegroundColor Green
     Write-Host ""
 
-
-    if((Test-Path -Path $UNCPathToServerRoot) -eq $false){
+    if((Test-Path -Path $UNCPathToServerRoot -ErrorAction:Ignore) -eq $false){
         Write-Host ("The UNC path entered could not be resolved. This might be due to permissions or an incorrect path entered." -f $UNCPathToServerRoot) -ForegroundColor Yellow
         Write-Host ("Please enter your Network Credentials. This will map the IPC$ share and test the path entered again.") -ForegroundColor Yellow
         $cred = Get-Credential
@@ -67,25 +66,16 @@ try {
 
         $DayzInstall = $installPath + "\steamapps\common\DayZ\!Workshop"
 
-        $modFileExportPath = "$PSScriptRoot\dayz_expansion_mod_list.txt"
         $HTML = Invoke-WebRequest $modFileList -UseBasicParsing
         $site = New-Object -ComObject "HTMLFile"
         $site.IHTMLDocument2_write($HTML.RawContent)
         $dataArray = @($site.all.tags("td") | ForEach-Object innertext)
-        $newArray = @()
-        $count = 0
-
-        while($count -lt $dataArray.Count){
-            $newArray += $dataArray[$count];$count += 3
-        }
-
-        $newArray | Out-File $modFileExportPath
-
-        $ModFile = Get-Content "$PSScriptRoot\dayz_expansion_mod_list.txt"
         $mods = @()
-        ForEach($f in $ModFile){
-            $mods += "@" + $f.split(",")[0]
+        $count = 0
+        while($count -lt $dataArray.Count){
+            $mods += "@" + $dataArray[$count];$count += 3
         }
+
         #Copy Mods
         ForEach($m in $mods){
             if(Test-Path -Path "$DayzInstall\$m"){
